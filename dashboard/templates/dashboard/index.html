@@ -14,8 +14,8 @@
             <a class="navbar-brand fw-bold" href="#">
                 <i class="bi bi-heart-pulse-fill me-2"></i>PostureAI
             </a>
-            <span class="navbar-text text-white">
-                <i class="bi bi-person-circle me-1"></i> Mode Inspecteur
+            <span class="navbar-text text-white fw-medium">
+                <i class="bi bi-person-circle me-1"></i> Utilisateur : {{ nom_utilisateur|default:"Inspecteur" }}
             </span>
         </div>
     </nav>
@@ -71,14 +71,40 @@
             <div class="col-md-5 mb-4">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-header bg-white border-0 py-3">
-                        <h5 class="card-title fw-bold text-dark mb-0"><i class="bi bi-person-bounding-box me-2 text-primary"></i>Statut Postural Actuel</h5>
+                        <h5 class="card-title fw-bold text-dark mb-0">
+                            <i class="bi bi-person-bounding-box me-2 text-primary"></i>Statut Postural Actuel
+                        </h5>
                     </div>
                     <div class="card-body text-center d-flex flex-column justify-content-center">
-                        <div class="display-1 text-success mb-3">
-                            <i class="bi bi-check-circle-fill"></i>
-                        </div>
-                        <h4 class="fw-bold text-success">Bonne Posture</h4>
-                        <p class="text-muted px-4">L'analyse en temps réel montre que l'alignement de la colonne et la répartition de la pression sont optimaux.</p>
+                        {% if derniere_analyse %}
+                            <div class="display-1 mb-3 
+                                {% if derniere_analyse.statut == 'vert' %}text-success
+                                {% elif derniere_analyse.statut == 'orange' %}text-warning
+                                {% else %}text-danger{% endif %}">
+                                
+                                <i class="bi 
+                                    {% if derniere_analyse.statut == 'vert' %}bi-check-circle-fill
+                                    {% elif derniere_analyse.statut == 'orange' %}bi-exclamation-circle-fill
+                                    {% else %}bi-x-circle-fill{% endif %}"></i>
+                            </div>
+
+                            <h4 class="fw-bold 
+                                {% if derniere_analyse.statut == 'vert' %}text-success
+                                {% elif derniere_analyse.statut == 'orange' %}text-warning
+                                {% else %}text-danger{% endif %}">
+                                
+                                {% if derniere_analyse.statut == 'vert' %}Bonne Posture
+                                {% elif derniere_analyse.statut == 'orange' %}Posture Moyenne
+                                {% else %}Mauvaise Posture{% endif %}
+                            </h4>
+
+                            <p class="text-muted px-4 mb-0">Score actuel : <strong>{{ derniere_analyse.score_posture }}/100</strong></p>
+                        {% else %}
+                            <div class="text-muted py-5">
+                                <i class="bi bi-cloud-slash fs-2 mb-2"></i>
+                                <p class="mb-0">En attente de données...</p>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -114,7 +140,7 @@
                         {% else %}
                         <div class="text-center text-muted py-5">
                             <i class="bi bi-exclamation-triangle fs-2 mb-2"></i>
-                            <p>Aucune donnée de capteur reçue pour le moment.</p>
+                            <p class="mb-0">Aucune donnée de capteur reçue pour le moment.</p>
                         </div>
                         {% endif %}
                     </div>
@@ -126,8 +152,16 @@
             <div class="col-12">
                 <div class="card border-0 shadow-sm bg-dark text-white">
                     <div class="card-body p-4">
-                        <h5 class="fw-bold text-warning mb-3"><i class="bi bi-lightning-charge-fill me-2"></i>Conseil Intelligent (IA)</h5>
-                        <p class="mb-0">Tout va bien pour l'instant ! Pensez à relâcher vos épaules toutes les 30 minutes et à boire un verre d'eau pour briser l'immobilité prolongée.</p>
+                        <h5 class="fw-bold text-warning mb-3">
+                            <i class="bi bi-lightning-charge-fill me-2"></i>Conseil Intelligent (IA)
+                        </h5>
+                        <p class="mb-0 lh-base">
+                            {% if derniere_analyse %}
+                                {{ derniere_analyse.recommandation }}
+                            {% else %}
+                                En attente de connexion avec l'ESP32.
+                            {% endif %}
+                        </p>
                     </div>
                 </div>
             </div>
