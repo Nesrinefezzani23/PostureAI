@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostureAI - Parcours Énergie</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --bg-gradient: radial-gradient(circle at 100% 0%, #fdfcfb 0%, #e2d1c3 100%);
+            --vibrant-bg: radial-gradient(circle at 0% 0%, #f0f4ff 0%, #f9f0ff 100%);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--vibrant-bg);
+            background-attachment: fixed;
+            color: #1a202c;
+            font-size: 0.95rem;
+        }
+
+        .navbar-custom {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+            padding: 0.6rem 0;
+        }
+
+        .btn-creative {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 8px 22px;
+            border-radius: 11px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.2);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.08);
+            padding: 1.25rem !important;
+        }
+
+        .trend-card {
+            background: var(--primary-gradient);
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(118, 75, 162, 0.3);
+        }
+
+        .score-circle {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.3rem;
+            backdrop-filter: blur(5px);
+            border: 2px solid rgba(255,255,255,0.4);
+        }
+
+        .table-custom tr {
+            background: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .table-custom tr:hover {
+            transform: translateX(5px);
+            border-left: 4px solid #667eea;
+        }
+
+        .badge-status {
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-weight: 800;
+            font-size: 0.7rem;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-green { background: #43e97b; color: white; }
+        .badge-orange { background: #f6d365; color: white; }
+        .badge-red { background: #ff0844; color: white; }
+
+        .chart-container {
+            height: 260px !important;
+        }
+
+        .motivation-quote {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 4px solid #667eea;
+            padding: 1rem;
+            border-radius: 0 15px 15px 0;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-custom sticky-top mb-4">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'home' %}">
+                <div class="bg-primary bg-opacity-10 p-1 rounded-2 me-2">
+                    <i class="bi bi-rocket-takeoff-fill text-primary" style="font-size: 1.2rem;"></i>
+                </div>
+                <span class="fw-bolder text-dark fs-4">Posture<span class="text-primary">AI</span></span>
+            </a>
+            <a href="{% url 'home' %}" class="btn btn-creative">
+                <i class="bi bi-house-fill me-1"></i> Dashboard
+            </a>
+        </div>
+    </nav>
+
+    <div class="container pb-5">
+        <div class="motivation-quote">
+            <h5 class="fw-bold text-primary mb-1"><i class="bi bi-award me-2"></i>Parcours Postural</h5>
+            <p class="text-muted small mb-0">Chaque jour est une opportunité de redresser votre avenir.</p>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-lg-8">
+                <div class="card glass-card h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h6 class="fw-bold m-0"><i class="bi bi-activity me-2 text-primary"></i>Énergie de la Semaine</h6>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="postureChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card glass-card trend-card h-100 d-flex flex-column justify-content-center p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <p class="text-uppercase fw-bold mb-0" style="font-size: 0.75rem; letter-spacing: 1px; opacity: 0.8;">Score Global</p>
+                            <h4 class="fw-extrabold mb-0">EN HAUSSE !</h4>
+                        </div>
+                        <div class="score-circle">84</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="progress bg-white bg-opacity-20" style="height: 10px; border-radius: 5px;">
+                            <div class="progress-bar bg-white" role="progressbar" style="width: 84%"></div>
+                        </div>
+                        <p class="mt-2 mb-0 small fw-bold opacity-90"><i class="bi bi-arrow-up-circle-fill me-1"></i> +5% de mieux qu'hier !</p>
+                    </div>
+
+                    <div class="bg-white bg-opacity-10 p-3 rounded-4">
+                        <h6 class="fw-bold mb-2" style="font-size: 0.9rem;"><i class="bi bi-lightning-fill text-warning me-1"></i>Boost Postural</h6>
+                        <p class="mb-0 opacity-90" style="font-size: 0.8rem; line-height: 1.4;">Redressez-vous maintenant ! Une bonne posture libère votre respiration et votre énergie.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold m-0 text-primary"><i class="bi bi-journals me-2"></i>VOTRE JOURNAL DE BORD</h6>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-custom border-0" style="border-collapse: separate; border-spacing: 0 8px;">
+                        <thead>
+                            <tr class="text-muted" style="font-size: 0.7rem;">
+                                <th class="border-0 px-4">INSTANT T</th>
+                                <th class="border-0 text-center">SCORE</th>
+                                <th class="border-0">LOCALISATION TENSION</th>
+                                <th class="border-0 text-center">ÉTAT FINAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for analyse in dernieres_analyses %}
+                            <tr>
+                                <td class="fw-bold px-4 border-0">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3 text-primary">
+                                            <i class="bi bi-clock-history"></i>
+                                        </div>
+                                        {{ analyse.timestamp_analyse|date:"d M, H:i" }}
+                                    </div>
+                                </td>
+                                <td class="text-center border-0"><span class="badge bg-white text-primary border border-primary fs-6 fw-extrabold">{{ analyse.score_posture }}</span></td>
+                                <td class="border-0">
+                                    {% if analyse.zone_tension %}
+                                        <span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ analyse.zone_tension }}</span>
+                                    {% else %}
+                                        <span class="text-success fw-bold"><i class="bi bi-shield-check me-1"></i>Aucune</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center border-0">
+                                    {% if analyse.statut|lower == 'rouge' %}
+                                        <span class="badge-status badge-red">CRITIQUE</span>
+                                    {% elif analyse.statut|lower == 'orange' %}
+                                        <span class="badge-status badge-orange">MOYEN</span>
+                                    {% else %}
+                                        <span class="badge-status badge-green">OPTIMAL</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center py-5 text-muted">Votre aventure commence ici. Connectez-vous !</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{ labels_jours|json_script:"labels-data" }}
+    {{ scores_jours|json_script:"scores-data" }}
+
+    <script>
+        const labelsJours = JSON.parse(document.getElementById('labels-data').textContent || '[]');
+        const scoresJours = JSON.parse(document.getElementById('scores-data').textContent || '[]');
+        const ctx = document.getElementById('postureChart').getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+        gradient.addColorStop(0, 'rgba(102, 126, 234, 0.4)');
+        gradient.addColorStop(1, 'rgba(102, 126, 234, 0)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labelsJours,
+                datasets: [{
+                    data: scoresJours,
+                    borderColor: '#667eea',
+                    backgroundColor: gradient,
+                    borderWidth: 4,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 5,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#667eea',
+                    pointBorderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, max: 100, ticks: { font: { size: 11, weight: 'bold' } }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { ticks: { font: { size: 11, weight: 'bold' } }, grid: { display: false } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -3,165 +3,283 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PostureAI - Dashboard</title>
+    <title>PostureAI - Dashboard Énergie</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-</head>
-<body class="bg-light">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --vibrant-blue: #4facfe;
+            --vibrant-purple: #9733ee;
+            --vibrant-green: #00f2fe;
+            --bg-gradient: radial-gradient(circle at 0% 0%, #f0f4ff 0%, #f9f0ff 100%);
+        }
 
-    <nav class="navbar navbar-dark bg-primary shadow-sm mb-4">
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: #1a202c;
+            font-size: 1rem;
+        }
+
+        .navbar-custom {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+            padding: 0.6rem 0;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 18px; /* Slightly reduced */
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.06);
+            padding: 1rem !important; /* Reduced from 1.25rem */
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .btn-history-creative {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 8px 18px; /* Slightly reduced */
+            border-radius: 11px; /* Slightly reduced */
+            font-weight: 700;
+            font-size: 0.9rem; /* Slightly reduced */
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(118, 75, 162, 0.2);
+            text-decoration: none;
+        }
+
+        .stat-icon {
+            width: 45px; /* Slightly reduced */
+            height: 45px; /* Slightly reduced */
+            border-radius: 13px; /* Slightly reduced */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem; /* Slightly reduced */
+            margin-right: 1rem; /* Slightly reduced */
+            box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+        }
+
+        .status-glow {
+            width: 80px; /* Reduced */
+            height: 80px; /* Reduced */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.3rem; /* Reduced */
+            margin: 0 auto 0.8rem; /* Reduced */
+            position: relative;
+        }
+
+        .status-vert { color: #fff; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .status-orange { color: #fff; background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); }
+        .status-rouge { color: #fff; background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%); }
+
+        .ia-advice-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 18px; /* Slightly reduced */
+            padding: 1.1rem !important; /* Reduced from 1.3rem */
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ia-advice-card::after {
+            content: '';
+            position: absolute;
+            top: -15px; right: -15px; /* Slightly reduced */
+            width: 80px; height: 80px; /* Slightly reduced */
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .measure-item {
+            padding: 9px 0; /* Reduced from 11px */
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+            font-size: 0.9rem; /* Slightly reduced */
+            color: #4a5568;
+        }
+
+        .badge-score {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 5px 12px; /* Slightly reduced */
+            border-radius: 11px; /* Slightly reduced */
+            font-weight: 800;
+            font-size: 0.85rem; /* Slightly reduced */
+        }
+
+        .motivation-banner {
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 10px; /* Slightly reduced */
+            padding: 8px 15px; /* Reduced from 10px 18px */
+            margin-bottom: 1.2rem; /* Reduced from 1.5rem */
+            border: 1px dashed rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            font-weight: 600;
+            text-align: center;
+            font-size: 0.85rem; /* Slightly reduced */
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-custom sticky-top mb-3">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="#">
-                <i class="bi bi-heart-pulse-fill me-2"></i>PostureAI
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'home' %}">
+                <div class="bg-primary bg-opacity-10 p-1 rounded-2 me-2">
+                    <i class="bi bi-lightning-fill text-primary" style="font-size: 1.2rem;"></i>
+                </div>
+                <span class="fw-bolder text-dark fs-5">Posture<span class="text-primary">AI</span></span>
             </a>
-            <span class="navbar-text text-white fw-medium">
-                <i class="bi bi-person-circle me-1"></i> Utilisateur : {{ nom_utilisateur|default:"Inspecteur" }}
-            </span>
+            <div class="d-flex align-items-center">
+                <a href="{% url 'historique' %}" class="btn btn-history-creative me-3">
+                    <i class="bi bi-rocket-takeoff-fill me-2"></i> Progression
+                </a>
+                <p class="fw-bold mb-0 small text-primary d-none d-md-block">{{ nom_utilisateur|default:"Inspecteur" }}</p>
+            </div>
         </div>
     </nav>
 
     <div class="container">
-        <div class="row text-center mb-4">
-            <div class="col-md-4 mb-3">
-                <div class="card border-0 shadow-sm bg-white p-3">
-                    <div class="d-flex align-items-center justify-content-around">
-                        <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary">
-                            <i class="bi bi-clock-history fs-3"></i>
-                        </div>
-                        <div>
-                            <h6 class="text-muted mb-1">Sessions Totales</h6>
-                            <h3 class="fw-bold mb-0">{{ total_sessions }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-4 mb-3">
-                <div class="card border-0 shadow-sm bg-white p-3">
-                    <div class="d-flex align-items-center justify-content-around">
-                        <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success">
-                            <i class="bi bi-activity fs-3"></i>
-                        </div>
-                        <div>
-                            <h6 class="text-muted mb-1">Inclinaison (Pitch)</h6>
-                            <h3 class="fw-bold mb-0 text-success">
-                                {% if derniere_mesure %}{{ derniere_mesure.pitch }}°{% else %}--{% endif %}
-                            </h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="motivation-banner">
+            <i class="bi bi-stars me-2"></i> « Une bonne posture est la clé d'un esprit puissant. » Restez motivé !
+        </div>
 
-            <div class="col-md-4 mb-3">
-                <div class="card border-0 shadow-sm bg-white p-3">
-                    <div class="d-flex align-items-center justify-content-around">
-                        <div class="rounded-circle bg-warning bg-opacity-10 p-3 text-warning">
-                            <i class="bi bi-cpu fs-3"></i>
-                        </div>
-                        <div>
-                            <h6 class="text-muted mb-1">Statut Moteur IA</h6>
-                            <h3 class="fw-bold mb-0 text-warning">{{ status_ia }}</h3>
-                        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="card glass-card d-flex flex-row align-items-center">
+                    <div class="stat-icon text-white" style="background: var(--primary-gradient);">
+                        <i class="bi bi-fire"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted fw-bold small text-uppercase mb-0" style="font-size: 0.7rem;">Sessions Actives</h6>
+                        <h3 class="fw-extrabold mb-0">{{ total_sessions }}</h3>
+                        <p class="mb-0 text-success small fw-bold mt-1" style="font-size: 0.75rem;"><i class="bi bi-graph-up"></i> +2 auj.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card glass-card d-flex flex-row align-items-center">
+                    <div class="stat-icon text-white" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                        <i class="bi bi-compass-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted fw-bold small text-uppercase mb-0" style="font-size: 0.7rem;">Angle de Vue</h6>
+                        <h3 class="fw-extrabold mb-0">{% if derniere_mesure %}{{ derniere_mesure.pitch }}°{% else %}--{% endif %}</h3>
+                        <p class="mb-0 text-info small fw-bold mt-1" style="font-size: 0.75rem;">Inclinaison Pitch</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card glass-card d-flex flex-row align-items-center">
+                    <div class="stat-icon text-white" style="background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);">
+                        <i class="bi bi-cpu-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted fw-bold small text-uppercase mb-0" style="font-size: 0.7rem;">Intelligence</h6>
+                        <h3 class="fw-extrabold mb-0" style="color: #fda085;">{{ status_ia }}</h3>
+                        <p class="mb-0 text-warning small fw-bold mt-1" style="font-size: 0.75rem;">Moteur Actif</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-md-5 mb-4">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header bg-white border-0 py-3">
-                        <h5 class="card-title fw-bold text-dark mb-0">
-                            <i class="bi bi-person-bounding-box me-2 text-primary"></i>Statut Postural Actuel
-                        </h5>
-                    </div>
-                    <div class="card-body text-center d-flex flex-column justify-content-center">
-                        {% if derniere_analyse %}
-                            <div class="display-1 mb-3 
-                                {% if derniere_analyse.statut == 'vert' %}text-success
-                                {% elif derniere_analyse.statut == 'orange' %}text-warning
-                                {% else %}text-danger{% endif %}">
-                                
-                                <i class="bi 
-                                    {% if derniere_analyse.statut == 'vert' %}bi-check-circle-fill
-                                    {% elif derniere_analyse.statut == 'orange' %}bi-exclamation-circle-fill
-                                    {% else %}bi-x-circle-fill{% endif %}"></i>
-                            </div>
+        <div class="row g-3">
+            <div class="col-lg-5">
+                <div class="card glass-card text-center d-flex flex-column justify-content-center">
+                    <h6 class="fw-bold mb-3 text-muted" style="font-size: 0.75rem;"><i class="bi bi-eye-fill me-2"></i>FOCUS POSTURAL</h6>
+                    
+                    {% if derniere_analyse %}
+                        <div class="status-glow status-{{ derniere_analyse.statut|lower }}">
+                            <i class="bi 
+                                {% if derniere_analyse.statut|lower == 'vert' %}bi-emoji-smile-fill
+                                {% elif derniere_analyse.statut|lower == 'orange' %}bi-emoji-neutral-fill
+                                {% else %}bi-emoji-frown-fill{% endif %}"></i>
+                        </div>
 
-                            <h4 class="fw-bold 
-                                {% if derniere_analyse.statut == 'vert' %}text-success
-                                {% elif derniere_analyse.statut == 'orange' %}text-warning
-                                {% else %}text-danger{% endif %}">
-                                
-                                {% if derniere_analyse.statut == 'vert' %}Bonne Posture
-                                {% elif derniere_analyse.statut == 'orange' %}Posture Moyenne
-                                {% else %}Mauvaise Posture{% endif %}
-                            </h4>
-
-                            <p class="text-muted px-4 mb-0">Score actuel : <strong>{{ derniere_analyse.score_posture }}/100</strong></p>
-                        {% else %}
-                            <div class="text-muted py-5">
-                                <i class="bi bi-cloud-slash fs-2 mb-2"></i>
-                                <p class="mb-0">En attente de données...</p>
-                            </div>
-                        {% endif %}
-                    </div>
+                        <h4 class="fw-extrabold mb-2 
+                            {% if derniere_analyse.statut|lower == 'vert' %}text-success
+                            {% elif derniere_analyse.statut|lower == 'orange' %}text-warning
+                            {% else %}text-danger{% endif %}">
+                            
+                            {% if derniere_analyse.statut|lower == 'vert' %}EXCELLENT !
+                            {% elif derniere_analyse.statut|lower == 'orange' %}ATTENTION
+                            {% else %}CORRECTION !{% endif %}
+                        </h4>
+                        <div class="mt-2">
+                            <span class="badge-score">{{ derniere_analyse.score_posture }} pts</span>
+                        </div>
+                    {% else %}
+                        <div class="py-3">
+                            <div class="spinner-border spinner-border-sm text-primary mb-2"></div>
+                            <p class="text-muted small" style="font-size: 0.85rem;">Synchronisation en cours...</p>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
 
-            <div class="col-md-7 mb-4">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header bg-white border-0 py-3">
-                        <h5 class="card-title fw-bold text-dark mb-0"><i class="bi bi-sliders me-2 text-primary"></i>Dernières Mesures Brutes</h5>
-                    </div>
-                    <div class="card-body">
-                        {% if derniere_mesure %}
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                <span><i class="bi bi-chevron-contract me-2 text-secondary"></i>Flexion Cervicale</span>
-                                <span class="badge bg-secondary rounded-pill">{{ derniere_mesure.flex_cervical }} Ω</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                <span><i class="bi bi-chevron-contract me-2 text-secondary"></i>Flexion Thoracique</span>
-                                <span class="badge bg-secondary rounded-pill">{{ derniere_mesure.flex_thoracique }} Ω</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                <span><i class="bi bi-chevron-contract me-2 text-secondary"></i>Flexion Lombaire</span>
-                                <span class="badge bg-secondary rounded-pill">{{ derniere_mesure.flex_lombaire }} Ω</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                <span><i class="bi bi-grid-3x3-gap me-2 text-secondary"></i>Pression Ischion (G / D)</span>
-                                <span class="fw-semibold">{{ derniere_mesure.pression_ischion_g }} / {{ derniere_mesure.pression_ischion_d }}</span>
-                            </li>
-                        </ul>
-                        <div class="text-end mt-3">
-                            <small class="text-muted">Mis à jour le : {{ derniere_mesure.timestamp|date:"H:i:s" }}</small>
+            <div class="col-lg-7">
+                <div class="card glass-card">
+                    <h6 class="fw-bold mb-3 d-flex align-items-center text-primary" style="font-size: 0.75rem;">
+                        <i class="bi bi-graph-up me-2"></i> SIGNES VITAUX DU DOS
+                    </h6>
+                    
+                    {% if derniere_mesure %}
+                    <div class="measure-list">
+                        <div class="measure-item d-flex justify-content-between align-items-center">
+                            <span class="fw-medium">Cervicales</span>
+                            <span class="badge bg-light text-dark border fs-5">{{ derniere_mesure.flex_cervical }} Ω</span>
                         </div>
-                        {% else %}
-                        <div class="text-center text-muted py-5">
-                            <i class="bi bi-exclamation-triangle fs-2 mb-2"></i>
-                            <p class="mb-0">Aucune donnée de capteur reçue pour le moment.</p>
+                        <div class="measure-item d-flex justify-content-between align-items-center">
+                            <span class="fw-medium">Thoraciques</span>
+                            <span class="badge bg-light text-dark border fs-5">{{ derniere_mesure.flex_thoracique }} Ω</span>
                         </div>
-                        {% endif %}
+                        <div class="measure-item d-flex justify-content-between align-items-center">
+                            <span class="fw-medium">Lombaires</span>
+                            <span class="badge bg-light text-dark border fs-5">{{ derniere_mesure.flex_lombaire }} Ω</span>
+                        </div>
+                        <div class="measure-item d-flex justify-content-between align-items-center border-0">
+                            <span class="fw-medium text-primary">Pression Ischion</span>
+                            <span class="fw-bold text-primary fs-5">{{ derniere_mesure.pression_ischion_g }} <small class="text-muted fs-6">vs</small> {{ derniere_mesure.pression_ischion_d }}</span>
+                        </div>
                     </div>
+                    <div class="text-end mt-2">
+                        <span class="text-muted fw-bold" style="font-size: 0.75rem;"><i class="bi bi-clock-history me-1"></i> {{ derniere_mesure.timestamp|date:"H:i" }}</span>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-wifi-off fs-1 text-muted mb-2"></i>
+                        <p class="text-muted small" style="font-size: 0.85rem;">Hors ligne</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
 
-        <div class="row mb-5">
+        <div class="row mt-3">
             <div class="col-12">
-                <div class="card border-0 shadow-sm bg-dark text-white">
-                    <div class="card-body p-4">
-                        <h5 class="fw-bold text-warning mb-3">
-                            <i class="bi bi-lightning-charge-fill me-2"></i>Conseil Intelligent (IA)
-                        </h5>
-                        <p class="mb-0 lh-base">
-                            {% if derniere_analyse %}
-                                {{ derniere_analyse.recommandation }}
-                            {% else %}
-                                En attente de connexion avec l'ESP32.
-                            {% endif %}
-                        </p>
+                <div class="card ia-advice-card">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-white bg-opacity-20 p-2 rounded-3 me-3"><i class="bi bi-lightning-charge-fill text-white fs-4"></i></div>
+                        <div>
+                            <h6 class="fw-bold text-white mb-1">COACH IA : ANALYSE & ACTION</h6>
+                            <p class="mb-0 fs-6 opacity-90 lh-base" style="font-size: 0.9rem;">
+                                {% if derniere_analyse %}
+                                    {{ derniere_analyse.recommandation }}
+                                {% else %}
+                                    Optimisez votre santé ! Votre coach attend les premières données pour vous guider.
+                                {% endif %}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
