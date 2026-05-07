@@ -16,15 +16,30 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from .models import Session, RawMeasure, PosturalAnalysis
 
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.drawing.image import Image as ExcelImage
+
 def export_csv(request):
-    """Exporte les analyses posturales au format CSV."""
+    """Exporte les analyses posturales au format CSV enrichi."""
+    analyses = PosturalAnalysis.objects.all().order_by('-timestamp_analyse')
+    if not analyses.exists():
+        return HttpResponse("Aucune donnée disponible.")
+        
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="rapport_posture_ai.csv"'
     
     writer = csv.writer(response)
+    # Metadata
+    user = analyses.first().session.user
+    first_date = analyses.last().timestamp_analyse.strftime('%Y-%m-%d')
+    last_date = analyses.first().timestamp_analyse.strftime('%Y-%m-%d')
+    
+    writer.writerow(['Utilisateur', user.username])
+    writer.writerow(['Periode', f"{first_date} au {last_date}"])
+    writer.writerow([]) # Empty row
     writer.writerow(['Date', 'Score', 'Zone de Tension', 'Statut', 'Recommandation'])
     
-    analyses = PosturalAnalysis.objects.all().order_by('-timestamp_analyse')
     for analyse in analyses:
         writer.writerow([
             analyse.timestamp_analyse.strftime('%Y-%m-%d %H:%M'),
@@ -35,10 +50,93 @@ def export_csv(request):
         ])
     return response
 
+def export_excel(request):
+    """Génère un rapport Excel (.xlsx) stylisé avec couleurs conditionnelles et auto-ajustement."""
+    analyses = PosturalAnalysis.objects.all().order_by('-timestamp_analyse')
+    if not analyses.exists():
+        return HttpResponse("Aucune donnée disponible.")
+        
+    username = analyses.first().session.user.username
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Rapport PostureAI"
+    
+    # Styles
+    primary_color = "D4A373"
+    header_fill = PatternFill(start_color=primary_color, end_color=primary_color, fill_type="solid")
+    font_bold = Font(bold=True, color="FFFFFF")
+    center_align = Alignment(horizontal="center")
+    
+    # Add Logo
+    img = ExcelImage('dashboard/static/dashboard/img/Logo.png')
+    img.width = 100
+    img.height = 100
+    ws.add_image(img, 'A1')
+    
+    # Metadata
+    first_date = analyses.last().timestamp_analyse.strftime('%d/%m/%Y')
+    last_date = analyses.first().timestamp_analyse.strftime('%d/%m/%Y')
+    
+    ws['C2'] = "Rapport d'Analyse Posturale"
+    ws['C2'].font = Font(size=18, bold=True)
+    ws['C3'] = f"Utilisateur : {username}"
+    ws['C4'] = f"Période : {first_date} - {last_date}"
+    
+    # Extra empty row for spacing
+    ws.append([])
+    
+    # Header row
+    headers = ['Date', 'Score', 'Zone de Tension', 'Statut', 'Recommandation']
+    ws.append(headers)
+    for cell in ws[6]:
+        cell.fill = header_fill
+        cell.font = Font(size=12, bold=True, color="FFFFFF")
+        cell.alignment = center_align
+    
+    # Data rows
+    for analyse in analyses:
+        # Status colors
+        status_color = "70C157" if analyse.statut == 'vert' else ("F4A261" if analyse.statut == 'orange' else "E76F51")
+        status_fill = PatternFill(start_color=status_color, end_color=status_color, fill_type="solid")
+        
+        row = [
+            analyse.timestamp_analyse.strftime('%d/%m/%Y %H:%M'),
+            analyse.score_posture,
+            analyse.zone_tension,
+            analyse.statut.upper(),
+            analyse.recommandation
+        ]
+        ws.append(row)
+        ws.cell(row=ws.max_row, column=4).fill = status_fill
+        ws.cell(row=ws.max_row, column=4).alignment = center_align
+    
+    # Auto-fit columns
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[column].width = adjusted_width
+    
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="rapport_posture_{username}.xlsx"'
+    wb.save(response)
+    return response
+
 def export_pdf(request):
     """Génère un rapport médical au format PDF moderne, chaleureux avec pagination."""
+    analyses = PosturalAnalysis.objects.all().order_by('-timestamp_analyse')
+    if not analyses.exists():
+        return HttpResponse("Aucune donnée disponible.")
+    
+    username = analyses.first().session.user.username
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="rapport_posture_postureai.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="rapport_posture_{username}.pdf"'
     
     p = canvas.Canvas(response, pagesize=A4)
     # Warm Palette
