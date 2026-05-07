@@ -9,6 +9,70 @@ from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Avg
 
+import csv
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from .models import Session, RawMeasure, PosturalAnalysis
+
+def export_csv(request):
+    """Exporte les analyses posturales au format CSV."""
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="rapport_posture_ai.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Date', 'Score', 'Zone de Tension', 'Statut', 'Recommandation'])
+    
+    analyses = PosturalAnalysis.objects.all().order_by('-timestamp_analyse')
+    for analyse in analyses:
+        writer.writerow([
+            analyse.timestamp_analyse.strftime('%Y-%m-%d %H:%M'),
+            analyse.score_posture,
+            analyse.zone_tension,
+            analyse.statut,
+            analyse.recommandation
+        ])
+    return response
+
+def export_pdf(request):
+    """Génère un rapport médical au format PDF."""
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="rapport_medical_posture.pdf"'
+    
+    p = canvas.Canvas(response, pagesize=A4)
+    p.setFont("Helvetica-Bold", 20)
+    p.drawCentredString(300, 800, "RAPPORT D'ANALYSE POSTURALE - PostureAI")
+    
+    p.setFont("Helvetica", 10)
+    p.drawString(50, 770, f"Généré le : {timezone.now().strftime('%d/%m/%Y %H:%M')}")
+    p.line(50, 760, 550, 760)
+    
+    y = 730
+    analyses = PosturalAnalysis.objects.all().order_by('-timestamp_analyse')[:15]
+    
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, y, "Date")
+    p.drawString(150, y, "Score")
+    p.drawString(200, y, "Zone")
+    p.drawString(300, y, "Statut")
+    y -= 20
+    
+    p.setFont("Helvetica", 10)
+    for analyse in analyses:
+        if y < 50:
+            p.showPage()
+            y = 800
+        p.drawString(50, y, analyse.timestamp_analyse.strftime('%d/%m %H:%M'))
+        p.drawString(150, y, str(analyse.score_posture))
+        p.drawString(200, y, str(analyse.zone_tension))
+        p.drawString(300, y, str(analyse.statut))
+        y -= 20
+        
+    p.showPage()
+    p.save()
+    return response
+
 def home(request):
     """
     Affiche le dashboard avec les dernières données et l'utilisateur de la session.
@@ -53,9 +117,9 @@ def receive_data(request):
             session=measure.session,
             score_posture=analysis_results['score'],
             deviation_dos=analysis_results['deviation'],
-            deviation_cou=0.0, 
-            symetrie_pression=0.0, 
-            zone_tension="Dos",
+            deviation_cou=analysis_results['deviation_cou'], 
+            symetrie_pression=analysis_results['symetrie_pression'], 
+            zone_tension=analysis_results['zone_tension'],
             statut=analysis_results['statut'],
             immobilite_min=0,
             recommandation=analysis_results['recommandation']
@@ -63,6 +127,8 @@ def receive_data(request):
         return Response({"status": "success"}, status=status.HTTP_201_CREATED)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+from django.core.paginator import Paginator
 
 def historique(request):
     """
@@ -92,8 +158,11 @@ def historique(request):
         else:
             scores_jours.append(0) 
 
-    # Récupération compacte des dernières analyses pour le tableau
-    dernieres_analyses = PosturalAnalysis.objects.order_by('-timestamp_analyse')[:5]
+    # Pagination des analyses
+    analyses_list = PosturalAnalysis.objects.order_by('-timestamp_analyse')
+    paginator = Paginator(analyses_list, 5)  # 5 analyses par page
+    page_number = request.GET.get('page')
+    dernieres_analyses = paginator.get_page(page_number)
 
     context = {
         'labels_jours': labels_jours,
