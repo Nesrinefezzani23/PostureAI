@@ -36,39 +36,104 @@ def export_csv(request):
     return response
 
 def export_pdf(request):
-    """Génère un rapport médical au format PDF."""
+    """Génère un rapport médical au format PDF moderne, chaleureux avec pagination."""
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="rapport_medical_posture.pdf"'
+    response['Content-Disposition'] = 'attachment; filename="rapport_posture_postureai.pdf"'
     
     p = canvas.Canvas(response, pagesize=A4)
-    p.setFont("Helvetica-Bold", 20)
-    p.drawCentredString(300, 800, "RAPPORT D'ANALYSE POSTURALE - PostureAI")
+    # Warm Palette
+    warm_bg = colors.HexColor("#fffcf9")
+    header_bg = colors.HexColor("#f8f0e5")
+    primary_warm = colors.HexColor("#d4a373")
+    text_warm = colors.HexColor("#5b4636")
     
-    p.setFont("Helvetica", 10)
-    p.drawString(50, 770, f"Généré le : {timezone.now().strftime('%d/%m/%Y %H:%M')}")
-    p.line(50, 760, 550, 760)
+    analyses = PosturalAnalysis.objects.all().order_by('-timestamp_analyse')
+    if not analyses.exists():
+        p.drawString(100, 700, "Aucune donnée disponible.")
+        p.save()
+        return response
     
-    y = 730
-    analyses = PosturalAnalysis.objects.all().order_by('-timestamp_analyse')[:15]
+    # Context data
+    user = analyses.first().session.user
+    first_date = analyses.last().timestamp_analyse.strftime('%d/%m/%Y')
+    last_date = analyses.first().timestamp_analyse.strftime('%d/%m/%Y')
     
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(50, y, "Date")
-    p.drawString(150, y, "Score")
-    p.drawString(200, y, "Zone")
-    p.drawString(300, y, "Statut")
-    y -= 20
-    
-    p.setFont("Helvetica", 10)
-    for analyse in analyses:
-        if y < 50:
-            p.showPage()
-            y = 800
-        p.drawString(50, y, analyse.timestamp_analyse.strftime('%d/%m %H:%M'))
-        p.drawString(150, y, str(analyse.score_posture))
-        p.drawString(200, y, str(analyse.zone_tension))
-        p.drawString(300, y, str(analyse.statut))
-        y -= 20
+    page_num = 1
+    def draw_header_and_footer():
+        # Background
+        p.setFillColor(warm_bg)
+        p.rect(0, 0, 600, 850, stroke=0, fill=1)
         
+        # Header (Le bandeau de fond)
+        p.setFillColor(header_bg)
+        p.rect(0, 760, 600, 82, stroke=0, fill=1)
+        
+        # Logo (Placé à Y=750 avec une hauteur de 90)
+        logo_path = 'dashboard/static/dashboard/img/Logo.png'
+        p.drawImage(logo_path, 35, 750, width=90, height=90, mask='auto')
+        
+        p.setFillColor(text_warm)
+        
+        # --- ALIGNEMENT VERTICAL ---
+        # Titre : descendu de 810 à 800
+        p.setFont("Helvetica-Bold", 22)
+        p.drawString(140, 800, "RAPPORT D'ANALYSE POSTURALE")
+        
+        # Sous-titre : descendu de 785 à 775
+        p.setFont("Helvetica", 10)
+        p.drawString(140, 775, f"Rapport : {user.username.capitalize()} | {first_date} - {last_date}")
+        # ---------------------------
+        
+        # Footer
+        p.setFont("Helvetica-Oblique", 9)
+        p.drawCentredString(300, 20, f"Page {page_num} | Généré par PostureAI - Votre bien-être est notre priorité.")
+
+    draw_header_and_footer()
+    
+    # Reduced gap between header and title
+    y = 730 
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(50, y, "Historique des Analyses")
+    
+    # Increased gap between title and table
+    y -= 45 
+    
+    # Table Header
+    p.setFillColor(primary_warm)
+    p.rect(50, y, 500, 25, stroke=0, fill=1)
+    p.setFillColor(colors.white)
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(60, y + 8, "DATE & HEURE")
+    p.drawString(180, y + 8, "SCORE")
+    p.drawString(260, y + 8, "ZONE DE TENSION")
+    p.drawString(420, y + 8, "STATUT")
+    
+    y -= 25
+    p.setFont("Helvetica", 10)
+    
+    for i, analyse in enumerate(analyses[:40]):
+        if y < 100:
+            p.showPage()
+            page_num += 1
+            draw_header_and_footer()
+            y = 700
+        
+        if i % 2 == 0:
+            p.setFillColor(colors.white)
+        else:
+            p.setFillColor(colors.HexColor("#faeddd"))
+        p.rect(50, y - 5, 500, 20, stroke=0, fill=1)
+        
+        p.setFillColor(text_warm)
+        p.drawString(60, y, analyse.timestamp_analyse.strftime('%d/%m %H:%M'))
+        p.drawString(180, y, str(analyse.score_posture))
+        p.drawString(260, y, str(analyse.zone_tension))
+        
+        status_color = colors.HexColor("#606c38") if analyse.statut == 'vert' else (colors.HexColor("#bc6c25") if analyse.statut == 'orange' else colors.HexColor("#bc4749"))
+        p.setFillColor(status_color)
+        p.drawString(420, y, analyse.statut.upper())
+        y -= 20
+    
     p.showPage()
     p.save()
     return response
