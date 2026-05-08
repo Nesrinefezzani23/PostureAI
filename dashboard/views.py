@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from .models import Session, RawMeasure, PosturalAnalysis
+from .models import Session, RawMeasure, PosturalAnalysis, Alerte
 from rest_framework import generics, status
 from rest_framework.response import Response
 from .serializers import RegisterSerializer, RawMeasureSerializer
@@ -18,7 +18,7 @@ from datetime import timedelta
 from django.db.models import Avg
 
 import csv
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -399,3 +399,26 @@ def historique(request):
         'dernieres_analyses': dernieres_analyses,
     }
     return render(request, 'dashboard/historique.html', context)
+
+
+@login_required
+def get_alertes(request):
+    alertes = Alerte.objects.filter(
+        user=request.user,
+        lue=False
+    ).select_related('analysis').order_by('-declenchee_at')[:20]
+
+    data = [{
+        'id': str(a.id_uuid),
+        'type': a.type_alerte,
+        'message': a.message,
+        'statut': a.analysis.statut,
+        'score': a.analysis.score_posture,
+        'zone': a.analysis.zone_tension,
+        'heure': a.declenchee_at.strftime('%H:%M:%S'),
+    } for a in alertes]
+
+    # Marquer comme lues
+    alertes.update(lue=True)
+
+    return JsonResponse({'alertes': data})
