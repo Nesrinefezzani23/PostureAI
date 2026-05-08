@@ -143,10 +143,25 @@
                 <a href="{% url 'historique' %}" class="btn btn-history-creative me-3">
                     <i class="bi bi-rocket-takeoff-fill me-2"></i> Progression
                 </a>
-                <p class="fw-bold mb-0 small text-primary d-none d-md-block">{{ nom_utilisateur|default:"Inspecteur" }}</p>
+                <div class="dropdown hover-dropdown">
+                    <button class="btn btn-link text-primary fw-bold text-decoration-none dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        {{ nom_utilisateur|capfirst }}
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#profileModal"><i class="bi bi-person me-2"></i>Mon Profil</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Déconnexion</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
+
+    {% include 'dashboard/profile_modal.html' %}
+
+    <style>
+        .hover-dropdown:hover > .dropdown-menu { display: block; }
+    </style>
 
     <div class="container">
         <div class="motivation-banner">

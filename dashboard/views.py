@@ -1,9 +1,17 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from .models import Session, RawMeasure, PosturalAnalysis
-from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework import generics, status
 from rest_framework.response import Response
-from .serializers import RawMeasureSerializer
+from .serializers import RegisterSerializer, RawMeasureSerializer
+from rest_framework.permissions import AllowAny
+
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    permission_classes = (AllowAny,)
+    serializer_class = RegisterSerializer
+
 from .ai_engine import analyze_posture_data
 from django.utils import timezone
 from datetime import timedelta
@@ -236,34 +244,66 @@ def export_pdf(request):
     p.save()
     return response
 
-def home(request):
-    """
-    Affiche le dashboard avec les dernières données et l'utilisateur de la session.
-    """
-    # 1. Statistiques globales
-    total_sessions = Session.objects.count()
+from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth.models import User
+from .models import Profile
+from rest_framework.decorators import api_view
+
+def landing(request):
+    return render(request, 'dashboard/landing.html')
+
+def signin(request):
+    if request.method == 'POST':
+        u = request.POST.get('username')
+        p = request.POST.get('password')
+        user = authenticate(request, username=u, password=p)
+        if user is not None:
+            login(request, user)
+            return redirect('home')
+    return render(request, 'dashboard/login.html')
+
+def signup(request):
+    if request.method == 'POST':
+        u = request.POST.get('username')
+        e = request.POST.get('email')
+        p = request.POST.get('password')
+        t = request.POST.get('taille')
+        w = request.POST.get('poids_kg')
+        a = request.POST.get('activite', 'sedentaire')
+        patho = request.POST.get('pathologies', '')
+
+        user = User.objects.create_user(username=u, email=e, password=p)
+        Profile.objects.create(
+            user=user,
+            taille=t if t else None,
+            poids_kg=w if w else None,
+            activite=a,
+            pathologies=patho
+        )
+        login(request, user)
+        return redirect('home')
+    return render(request, 'dashboard/register.html')
+
+def signout(request):
+    logout(request)
+    return redirect('signin')
+
+@login_required
+def profile_settings(request):
+    if request.method == 'POST':
+        user = request.user
+        user.profile.taille = request.POST.get('taille')
+        user.profile.poids_kg = request.POST.get('poids_kg')
+        user.profile.activite = request.POST.get('activite')
+        user.profile.pathologies = request.POST.get('pathologies')
+        user.profile.save()
+        return redirect('home')
     
-    # 2. Dernière mesure brute reçue
-    derniere_mesure = RawMeasure.objects.order_by('-timestamp').first()
-
-    # 3. Analyse IA la plus récente
-    derniere_analyse = PosturalAnalysis.objects.order_by('-timestamp_analyse').first()
-
-    # 4. Récupération du nom de l'utilisateur
-    nom_utilisateur = "Inspecteur" # Valeur par défaut
-    
-    if derniere_mesure and derniere_mesure.session:
-        # On récupère le nom associé à la session (seyf dans ton cas)
-        nom_utilisateur = derniere_mesure.session.user
-
     context = {
-        'total_sessions': total_sessions,
-        'derniere_mesure': derniere_mesure,
-        'derniere_analyse': derniere_analyse,
-        'nom_utilisateur': nom_utilisateur,
-        'status_ia': "Actif"
+        'user': request.user,
+        'activite_choices': Profile.ACTIVITE_CHOICES
     }
-    return render(request, 'dashboard/index.html', context)
+    return render(request, 'dashboard/profile.html', context)
 
 @api_view(['POST'])
 def receive_data(request):
@@ -293,6 +333,34 @@ def receive_data(request):
 
 from django.core.paginator import Paginator
 
+@login_required
+def home(request):
+    """
+    Affiche le dashboard avec les dernières données et l'utilisateur de la session.
+    """
+    # 1. Statistiques globales pour l'utilisateur connecté
+    total_sessions = Session.objects.filter(user=request.user).count()
+    
+    # 2. Dernière mesure brute reçue pour cet utilisateur
+    derniere_mesure = RawMeasure.objects.filter(session__user=request.user).order_by('-timestamp').first()
+
+    # 3. Analyse IA la plus récente pour cet utilisateur
+    derniere_analyse = PosturalAnalysis.objects.filter(session__user=request.user).order_by('-timestamp_analyse').first()
+
+    # 4. Récupération du nom de l'utilisateur
+    nom_utilisateur = request.user.username
+
+    context = {
+        'total_sessions': total_sessions,
+        'derniere_mesure': derniere_mesure,
+        'derniere_analyse': derniere_analyse,
+        'nom_utilisateur': nom_utilisateur,
+        'status_ia': "Actif",
+        'activite_choices': Profile.ACTIVITE_CHOICES
+    }
+    return render(request, 'dashboard/index.html', context)
+
+@login_required
 def historique(request):
     """
     Vue pour l'historique compact avec graphique hebdomadaire.
@@ -304,26 +372,24 @@ def historique(request):
     labels_jours = []
     scores_jours = []
     
-    # Boucle corrigée pour itérer sur la liste des jours
+    # Boucle pour l'utilisateur connecté
     for jour in derniers_7_jours:
-        # Formatage de l'étiquette (ex: "05 mai")
         labels_jours.append(jour.strftime('%d %b'))
         
-        # Calcul de la moyenne pour ce jour précis
         stat_du_jour = PosturalAnalysis.objects.filter(
+            session__user=request.user,
             timestamp_analyse__date=jour
         ).aggregate(moyenne_score=Avg('score_posture'))
         
         score_moyen = stat_du_jour['moyenne_score']
-        # On ajoute le score arrondi ou 0 si pas de données pour tracer la ligne
         if score_moyen is not None:
             scores_jours.append(round(score_moyen, 1))
         else:
             scores_jours.append(0) 
 
-    # Pagination des analyses
-    analyses_list = PosturalAnalysis.objects.order_by('-timestamp_analyse')
-    paginator = Paginator(analyses_list, 5)  # 5 analyses par page
+    # Pagination des analyses pour l'utilisateur connecté
+    analyses_list = PosturalAnalysis.objects.filter(session__user=request.user).order_by('-timestamp_analyse')
+    paginator = Paginator(analyses_list, 5)
     page_number = request.GET.get('page')
     dernieres_analyses = paginator.get_page(page_number)
 

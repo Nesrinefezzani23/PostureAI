@@ -4,15 +4,16 @@ from django.contrib.auth.models import User
 
 # 1. Profil utilisateur (extension de l'utilisateur Django)
 class Profile(models.Model):
+    ACTIVITE_CHOICES = [
+        ('sedentaire', 'Sédentaire'),
+        ('actif', 'Actif'),
+        ('sportif', 'Sportif')
+    ]
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     id_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    taille_cm = models.FloatField(null=True, blank=True)
+    taille = models.FloatField(null=True, blank=True)
     poids_kg = models.FloatField(null=True, blank=True)
-    activite = models.CharField(max_length=100, choices=[
-        ('bureau', 'Bureau'),
-        ('sport', 'Sport'),
-        ('autre', 'Autre')
-    ])
+    activite = models.CharField(max_length=100, choices=ACTIVITE_CHOICES, default='sedentaire')
     pathologies = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostureAI - Votre bien-être connecté</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #667eea;
+            --accent: #764ba2;
+            --glass: rgba(255, 255, 255, 0.95);
+        }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: #0f172a; 
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .main-gradient {
+            background: radial-gradient(circle at top right, #312e81, #0f172a),
+                        radial-gradient(circle at bottom left, #764ba2, #0f172a);
+        }
+        .container-custom {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .hero-text {
+            animation: fadeInUp 1s ease;
+        }
+        .hero-text h1 { font-size: 4.5rem; font-weight: 800; letter-spacing: -2px; }
+        .hero-text p { font-size: 1.25rem; opacity: 0.8; max-width: 500px; margin-bottom: 2rem; }
+        
+        .auth-card {
+            background: var(--glass);
+            color: #1e293b;
+            padding: 3rem;
+            border-radius: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+        }
+        .btn-main { background: var(--primary); color: white; padding: 15px 30px; border-radius: 12px; font-weight: 700; transition: 0.3s; }
+        .btn-main:hover { transform: translateY(-5px); background: var(--accent); color: white; }
+        .btn-outline { border: 2px solid #e2e8f0; color: #475569; padding: 15px 30px; border-radius: 12px; font-weight: 700; }
+        .btn-outline:hover { background: #f8fafc; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="main-gradient">
+    <div class="container-custom">
+        <div class="row w-100 align-items-center">
+            <div class="col-lg-7 hero-text">
+                <img src="{% static 'dashboard/img/Logo.png' %}" alt="Logo" class="mb-4" style="height: 150px; filter: invert(1);">
+                <h1>Votre santé <br><span style="color: #818cf8;">à chaque seconde.</span></h1>
+                <p>L'IA qui analyse, corrige et sublime votre posture au quotidien. Rejoignez la révolution du bien-être postural.</p>
+                <div class="d-flex gap-3">
+                    <div class="bg-white bg-opacity-10 p-3 rounded-4">
+                        <h4 class="mb-0">98%</h4>
+                        <small class="opacity-75">Correction</small>
+                    </div>
+                    <div class="bg-white bg-opacity-10 p-3 rounded-4">
+                        <h4 class="mb-0">24/7</h4>
+                        <small class="opacity-75">Monitoring</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="auth-card">
+                    <h2 class="fw-bold mb-4">Prêt à commencer ?</h2>
+                    <a href="{% url 'signup' %}" class="btn btn-main d-block mb-3">Créer mon espace</a>
+                    <a href="{% url 'signin' %}" class="btn btn-outline d-block">Déjà membre ?</a>
+                    <p class="mt-4 text-muted small">Sécurisé, rapide et intelligent.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
