@@ -26,15 +26,12 @@ def predict_posture(data):
         model, scaler = get_model()
 
         flex_cerv = data.get('flex_cervical', 0)
-        flex_lomb = data.get('flex_lombaire', 0)
-        flex_thor = data.get('flex_thoracique', 0)
 
-        # Si les flex sont à 0 (capteur non branché ou ADC2 conflict)
-        # on fait confiance au calcul ESP32
-        if flex_cerv == 0 and flex_lomb == 0 and flex_thor == 0:
+        # Si flex_cervical = 0 → ADC2 bloqué par Wi-Fi → fallback ESP32
+        if flex_cerv == 0:
             statut = data.get('statut', 'vert')
             score  = data.get('score_posture', 0)
-            print(f"[IA] Features invalides → fallback ESP32 : {statut} score:{score}")
+            print(f"[IA] flex_cervical=0 → fallback ESP32 : {statut} score:{score}")
             return statut, score, 0
 
         features = np.array([[
