@@ -1,6 +1,6 @@
 import json
 import threading
-from datetime import datetime
+import time
 import paho.mqtt.client as mqtt
 
 BROKER = "broker.hivemq.com"
@@ -12,35 +12,37 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe(TOPIC)
 
 def on_message(client, userdata, msg):
-    import django
-    django.setup()
-    from dashboard.models import Session, RawMeasure, PosturalAnalysis, Alerte
-    from django.contrib.auth.models import User
-    from asgiref.sync import async_to_sync
-    from channels.layers import get_channel_layer
-
     try:
         data = json.loads(msg.payload.decode())
 
-        # Récupère ou crée une session active pour le device ESP32
-        # On utilise le premier user disponible — adapte selon ton auth
+        # Import Django ici, pas au niveau module
+        import django
+        import os
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+
+        from dashboard.models import Session, RawMeasure, PosturalAnalysis, Alerte
+        from django.contrib.auth.models import User
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+
         user = User.objects.first()
         if not user:
             print("[MQTT] Aucun utilisateur trouvé")
             return
 
-        session, created = Session.objects.get_or_create(
+        # Session active ou création
+        session, _ = Session.objects.get_or_create(
             device_id="ESP32_Wokwi",
             fin_session=None,
             defaults={
                 'user': user,
-                'debut_session': datetime.now(),
+                'debut_session': __import__('django.utils.timezone', fromlist=['now']).now(),
                 'contexte': 'pc',
                 'duree_minutes': 0,
             }
         )
 
-        # 1. Sauvegarder dans RawMeasure
+        # Sauvegarde RawMeasure
         mesure = RawMeasure.objects.create(
             session=session,
             acc_x=data.get('acc_x', 0),
@@ -60,7 +62,7 @@ def on_message(client, userdata, msg):
             pression_cuisse_d=data.get('pression_cuisse_d', 0),
         )
 
-        # 2. Sauvegarder dans PosturalAnalysis
+        # Sauvegarde PosturalAnalysis
         analyse = PosturalAnalysis.objects.create(
             measure=mesure,
             session=session,
@@ -74,7 +76,7 @@ def on_message(client, userdata, msg):
             recommandation=data.get('recommandation', ''),
         )
 
-        # 3. Créer une alerte si statut orange ou rouge
+        # Alerte si orange ou rouge
         statut = data.get('statut', 'vert')
         if statut in ['orange', 'rouge']:
             Alerte.objects.create(
@@ -85,14 +87,17 @@ def on_message(client, userdata, msg):
                 lue=False,
             )
 
-        # 4. Pousser en temps réel vers le navigateur
+        # ── Push WebSocket vers le navigateur ──
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
             "posture_dashboard",
-            {"type": "posture.update", "data": data}
+            {
+                "type": "posture.update",
+                "data": data
+            }
         )
 
-        print(f"[MQTT] OK — score:{data.get('score_posture')} statut:{statut}")
+        print(f"[MQTT] OK — score:{data.get('score_posture')} statut:{statut} → WS envoyé")
 
     except Exception as e:
         print(f"[MQTT] Erreur : {e}")
@@ -100,13 +105,21 @@ def on_message(client, userdata, msg):
         traceback.print_exc()
 
 def start_mqtt():
-    client = mqtt.Client(client_id="django_posture_listener")
-    client.on_connect = on_connect
-    client.on_message = on_message
-    client.connect(BROKER, PORT, 60)
-    client.loop_forever()
+    while True:
+        try:
+            print("[MQTT] Connexion au broker...")
+            client = mqtt.Client(client_id="django_posture_listener_01")
+            client.on_connect = on_connect
+            client.on_message = on_message
+            client.connect(BROKER, PORT, 60)
+            client.loop_forever()
+        except Exception as e:
+            print(f"[MQTT] Déconnecté : {e} — retry dans 5s")
+            time.sleep(5)
 
 def start_mqtt_thread():
+    # Attendre que Django soit complètement prêt
+    time.sleep(2)
     t = threading.Thread(target=start_mqtt, daemon=True)
     t.start()
     print("[MQTT] Thread démarré")
