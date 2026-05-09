@@ -422,3 +422,27 @@ def get_alertes(request):
     alertes.update(lue=True)
 
     return JsonResponse({'alertes': data})
+def export_dataset_csv(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="posture_dataset.csv"'
+    writer = csv.writer(response)
+    writer.writerow([
+        'pitch','roll','acc_x','acc_y','acc_z',
+        'gyro_x','gyro_y','gyro_z',
+        'flex_lombaire','flex_thoracique','flex_cervical',
+        'pression_ischion_g','pression_ischion_d',
+        'pression_cuisse_g','pression_cuisse_d',
+        'label'
+    ])
+    for a in PosturalAnalysis.objects.select_related('measure').all():
+        m = a.measure
+        label = 0 if a.statut=='vert' else 1 if a.statut=='orange' else 2
+        writer.writerow([
+            m.pitch, m.roll, m.acc_x, m.acc_y, m.acc_z,
+            m.gyro_x, m.gyro_y, m.gyro_z,
+            m.flex_lombaire, m.flex_thoracique, m.flex_cervical,
+            m.pression_ischion_g, m.pression_ischion_d,
+            m.pression_cuisse_g, m.pression_cuisse_d,
+            label
+        ])
+    return response
