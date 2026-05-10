@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/status.dart' as status;
+import 'package:vibration/vibration.dart';
 
 void main() {
   runApp(const PostureApp());
@@ -60,11 +63,9 @@ class _LoginScreenState extends State<LoginScreen> {
         var data = jsonDecode(response.body);
         String accessToken = data['access'];
         
-        // Sauvegarde locale
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', accessToken);
 
-        // Redirection vers le Dashboard
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const DashboardScreen()),
@@ -134,37 +135,59 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  late Future<List<dynamic>> _alertsFuture;
+  late WebSocketChannel channel;
+  late Stream _broadcastStream;
+  bool _wasPostureBad = false;
 
   @override
   void initState() {
     super.initState();
-    _alertsFuture = fetchAlerts();
+    connectToWebSocket();
   }
 
-  Future<List<dynamic>> fetchAlerts() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? token = prefs.getString('token');
-    final String url = "http://192.168.100.26:8000/api/alertes/";
+  void connectToWebSocket() {
+    channel = WebSocketChannel.connect(
+      Uri.parse('ws://192.168.100.26:8000/ws/posture/'),
+    );
+    
+    _broadcastStream = channel.stream.asBroadcastStream();
 
-    try {
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+    _broadcastStream.listen(
+      (data) {
+        var decoded = jsonDecode(data.toString());
+        _checkVibration(decoded['score_posture'] ?? 100);
+      },
+      onDone: () {
+        print("WebSocket déconnecté. Reconnexion dans 2 secondes...");
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) connectToWebSocket();
+        });
+      },
+      onError: (error) {
+        print("Erreur WebSocket: $error");
+      },
+    );
+  }
+
+  void _checkVibration(int score) {
+    print("Debug: Checking vibration for score: $score. _wasPostureBad: $_wasPostureBad");
+    bool isWarning = score < 50;
+    if (isWarning && !_wasPostureBad) {
+      print("Debug: Triggering vibration!");
+      _wasPostureBad = true;
+      Vibration.vibrate(
+        pattern: [0, 500, 200, 500],
+        intensities: [0, 255, 0, 255],
       );
-
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else {
-        throw Exception('Erreur lors du chargement des alertes');
-      }
-    } catch (e) {
-      print("Erreur réseau : $e");
-      return [];
+    } else if (!isWarning) {
+      _wasPostureBad = false;
     }
+  }
+
+  @override
+  void dispose() {
+    channel.sink.close(status.goingAway);
+    super.dispose();
   }
 
   @override
@@ -174,9 +197,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          _buildStatusHeader(),
-          const SizedBox(height: 20),
-          _buildAlertSection(),
+          _buildLiveStatus(),
           const SizedBox(height: 20),
           _buildRecommendationSection(),
         ],
@@ -184,56 +205,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStatusHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.green[100], borderRadius: BorderRadius.circular(15)),
-      child: const Row(
-        children: [
-          Icon(Icons.check_circle, color: Colors.green, size: 40),
-          SizedBox(width: 15),
-          Text("Posture Correcte", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
+  Widget _buildLiveStatus() {
+    return StreamBuilder(
+      stream: _broadcastStream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) return Text('Erreur: ${snapshot.error}');
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-  Widget _buildAlertSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Dernières Alertes", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
-        FutureBuilder<List<dynamic>>(
-          future: _alertsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Card(child: Padding(padding: EdgeInsets.all(16.0), child: Text("Aucune alerte pour le moment.")));
-            }
+        print("Debug: Raw WS data: ${snapshot.data}");
+        var data = jsonDecode(snapshot.data.toString());
+        int score = data['score_posture'] ?? 100;
+        bool isWarning = score < 50;
+        Color statusColor = isWarning ? Colors.red : Colors.green;
 
-            return ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: snapshot.data!.length,
-              itemBuilder: (context, index) {
-                var alerte = snapshot.data![index];
-                return Card(
-                  child: ListTile(
-                    leading: Icon(
-                      alerte['type'] == 'warning' ? Icons.warning : Icons.info,
-                      color: alerte['type'] == 'warning' ? Colors.orange : Colors.blue,
-                    ),
-                    title: Text(alerte['titre'] ?? 'Alerte'),
-                    subtitle: Text("${alerte['message'] ?? ''} (${alerte['temps'] ?? ''})"),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ],
+        return Card(
+          color: isWarning ? Colors.red[100] : Colors.green[100],
+          child: ListTile(
+            leading: Icon(isWarning ? Icons.warning : Icons.check_circle, color: statusColor, size: 40),
+            title: Text("Score Posture: $score", style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text("Statut: ${data['statut'] ?? 'Inconnu'}"),
+            trailing: Text("${DateTime.now().hour}:${DateTime.now().minute}"),
+          ),
+        );
+      },
     );
   }
 

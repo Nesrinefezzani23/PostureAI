@@ -401,7 +401,11 @@ def historique(request):
     return render(request, 'dashboard/historique.html', context)
 
 
-@login_required
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_alertes(request):
     alertes = Alerte.objects.filter(
         user=request.user,
@@ -419,9 +423,10 @@ def get_alertes(request):
     } for a in alertes]
 
     # Marquer comme lues
-    alertes.update(lue=True)
+    #alertes.update(lue=True)
 
-    return JsonResponse({'alertes': data})
+    return Response(data)
+
 def export_dataset_csv(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="posture_dataset.csv"'
