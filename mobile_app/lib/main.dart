@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import 'package:vibration/vibration.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 void main() {
   runApp(const PostureApp());
@@ -137,6 +138,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   late WebSocketChannel channel;
   late Stream _broadcastStream;
+  final AudioPlayer _audioPlayer = AudioPlayer();
   bool _wasPostureBad = false;
 
   @override
@@ -155,10 +157,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _broadcastStream.listen(
       (data) {
         var decoded = jsonDecode(data.toString());
-        _checkVibration(decoded['score_posture'] ?? 100);
+        _triggerAlert(decoded['score_posture'] ?? 100);
       },
       onDone: () {
-        print("WebSocket déconnecté. Reconnexion dans 2 secondes...");
+        print("WebSocket déconnecté. Reconnexion...");
         Future.delayed(const Duration(seconds: 2), () {
           if (mounted) connectToWebSocket();
         });
@@ -169,16 +171,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _checkVibration(int score) {
-    print("Debug: Checking vibration for score: $score. _wasPostureBad: $_wasPostureBad");
+  Future<void> _triggerAlert(int score) async {
     bool isWarning = score < 50;
     if (isWarning && !_wasPostureBad) {
-      print("Debug: Triggering vibration!");
       _wasPostureBad = true;
-      Vibration.vibrate(
-        pattern: [0, 500, 200, 500],
-        intensities: [0, 255, 0, 255],
-      );
+
+      // 1. Déclencher la vibration
+      if (await Vibration.hasVibrator() ?? false) {
+        Vibration.vibrate(pattern: [0, 500, 200, 500]);
+      }
+
+      // 2. Jouer le son "Bip"
+      await _audioPlayer.play(AssetSource('audio/bip.mp3'));
     } else if (!isWarning) {
       _wasPostureBad = false;
     }
@@ -186,6 +190,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   void dispose() {
+    _audioPlayer.dispose();
     channel.sink.close(status.goingAway);
     super.dispose();
   }
