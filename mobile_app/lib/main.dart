@@ -44,6 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
   
   final String _apiUrl = "http://192.168.100.26:8000/login-api/";
 
@@ -98,20 +99,35 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.accessibility_new, size: 80, color: Colors.indigo),
-              const SizedBox(height: 30),
-              const Text("Connexion PostureAI", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.indigo)),
-              const SizedBox(height: 30),
-              TextField(controller: _usernameController, decoration: const InputDecoration(labelText: "Nom d'utilisateur", prefixIcon: Icon(Icons.person))),
+              Image.asset('assets/img/Logo.png', height: 120),
+              const SizedBox(height: 24),
+              const Text("PostureAI", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.indigo)),
+              const SizedBox(height: 32),
+              TextField(
+                controller: _usernameController,
+                decoration: const InputDecoration(labelText: "Nom d'utilisateur", prefixIcon: Icon(Icons.person), border: OutlineInputBorder()),
+              ),
               const SizedBox(height: 16),
-              TextField(controller: _passwordController, decoration: const InputDecoration(labelText: "Mot de passe", prefixIcon: Icon(Icons.lock)), obscureText: true),
-              const SizedBox(height: 30),
+              TextField(
+                controller: _passwordController,
+                obscureText: !_isPasswordVisible,
+                decoration: InputDecoration(
+                  labelText: "Mot de passe",
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                  ),
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -245,16 +261,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("PostureAI - Dashboard"), backgroundColor: Colors.indigo),
-      body: ListView(
+      appBar: AppBar(title: const Text("PostureAI"), backgroundColor: Colors.indigo, centerTitle: true),
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
-        children: [
-          _buildLiveStatus(),
-          const SizedBox(height: 20),
-          _buildStatsSection(),
-          const SizedBox(height: 20),
-          _buildRecommendationSection(),
-        ],
+        child: Column(
+          children: [
+            Expanded(flex: 1, child: _buildLiveStatus()),
+            const SizedBox(height: 16),
+            Expanded(flex: 2, child: _buildStatsSection()),
+            const SizedBox(height: 16),
+            Expanded(flex: 1, child: _buildRecommendationSection()),
+          ],
+        ),
       ),
     );
   }
