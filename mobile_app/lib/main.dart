@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -140,6 +141,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late Stream _broadcastStream;
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _wasPostureBad = false;
+  int _secondsGreen = 0;
+  int _secondsRed = 0;
 
   @override
   void initState() {
@@ -157,7 +160,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _broadcastStream.listen(
       (data) {
         var decoded = jsonDecode(data.toString());
-        _triggerAlert(decoded['score_posture'] ?? 100);
+        int score = decoded['score_posture'] ?? 100;
+        
+        setState(() {
+          if (score >= 50) _secondsGreen++; else _secondsRed++;
+        });
+        
+        _triggerAlert(score);
       },
       onDone: () {
         print("WebSocket déconnecté. Reconnexion...");
@@ -195,6 +204,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
+  Widget _buildStatsSection() {
+    final double total = (_secondsGreen + _secondsRed).toDouble();
+    if (total == 0) return const SizedBox.shrink();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            const Text("Répartition du jour", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 200,
+              child: PieChart(
+                PieChartData(
+                  sections: [
+                    PieChartSectionData(
+                      value: _secondsGreen.toDouble(),
+                      color: Colors.green,
+                      title: 'Bonne (${(_secondsGreen/total*100).toInt()}%)',
+                      radius: 50,
+                    ),
+                    PieChartSectionData(
+                      value: _secondsRed.toDouble(),
+                      color: Colors.red,
+                      title: 'Mauvaise (${(_secondsRed/total*100).toInt()}%)',
+                      radius: 50,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -203,6 +250,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         padding: const EdgeInsets.all(16.0),
         children: [
           _buildLiveStatus(),
+          const SizedBox(height: 20),
+          _buildStatsSection(),
           const SizedBox(height: 20),
           _buildRecommendationSection(),
         ],
@@ -214,10 +263,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return StreamBuilder(
       stream: _broadcastStream,
       builder: (context, snapshot) {
-        if (snapshot.hasError) return Text('Erreur: ${snapshot.error}');
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        if (snapshot.hasError) {
+          return Card(color: Colors.red[100], child: ListTile(title: Text("Erreur: ${snapshot.error}")));
+        }
+        
+        switch (snapshot.connectionState) {
+          case ConnectionState.waiting:
+          case ConnectionState.active:
+            if (!snapshot.hasData) {
+              return const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(width: 20),
+                      Text("Connexion au capteur..."),
+                    ],
+                  ),
+                ),
+              );
+            }
+            break;
+          case ConnectionState.done:
+            return const Card(child: ListTile(title: Text("Connexion fermée par le serveur.")));
+          default:
+            return const Card(child: ListTile(title: Text("En attente...")));
+        }
 
-        print("Debug: Raw WS data: ${snapshot.data}");
         var data = jsonDecode(snapshot.data.toString());
         int score = data['score_posture'] ?? 100;
         bool isWarning = score < 50;
