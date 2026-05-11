@@ -68,10 +68,11 @@ class _LoginScreenState extends State<LoginScreen> {
         
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', accessToken);
+        await prefs.setString('username', _usernameController.text);
 
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          MaterialPageRoute(builder: (context) => DashboardScreen(username: _usernameController.text)),
         );
       } else {
         _showResultDialog("Erreur", "Identifiants invalides.", Icons.error, Colors.red);
@@ -144,7 +145,8 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final String username;
+  const DashboardScreen({super.key, required this.username});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -311,7 +313,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         const Text("Analyse Posturale", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                         Text(
-                          "Utilisateur: Invité • ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}",
+                          "Utilisateur: ${widget.username} • ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}",
                           style: const TextStyle(color: Colors.white70, fontSize: 14),
                         ),
                       ],
