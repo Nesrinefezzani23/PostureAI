@@ -281,11 +281,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 150.0,
+            expandedHeight: 140.0,
             floating: false,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              title: const Text("PostureAI", style: TextStyle(fontWeight: FontWeight.bold)),
               background: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -293,6 +292,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
+                ),
+                padding: const EdgeInsets.only(top: 40, left: 10, right: 20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Image.asset('assets/img/Logo.png', height: 100),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text("Analyse Posturale", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                        Text(
+                          "Utilisateur: Invité • ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}",
+                          style: const TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -371,9 +395,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         padding: EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Text("💡 Recommandation IA", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
-            SizedBox(height: 8),
-            Text("Pensez à faire une pause de 2 minutes et à étirer vos épaules."),
+            Row(children: [SizedBox(width: 45), Text("💡 Recommandation IA", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo, fontSize: 18))]),
+            SizedBox(height: 12),
+            Text("Pensez à faire une pause de 2 minutes et à étirer vos épaules.", style: TextStyle(fontSize: 16, color: Colors.black87)),
           ],
         ),
       ),
