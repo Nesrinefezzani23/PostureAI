@@ -218,59 +218,98 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
+  Widget _buildCard({required Widget child}) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(padding: const EdgeInsets.all(16.0), child: child),
+    );
+  }
+
   Widget _buildStatsSection() {
     final double total = (_secondsGreen + _secondsRed).toDouble();
     if (total == 0) return const SizedBox.shrink();
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const Text("Répartition du jour", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 200,
-              child: PieChart(
-                PieChartData(
-                  sections: [
-                    PieChartSectionData(
-                      value: _secondsGreen.toDouble(),
-                      color: Colors.green,
-                      title: 'Bonne (${(_secondsGreen/total*100).toInt()}%)',
-                      radius: 50,
-                    ),
-                    PieChartSectionData(
-                      value: _secondsRed.toDouble(),
-                      color: Colors.red,
-                      title: 'Mauvaise (${(_secondsRed/total*100).toInt()}%)',
-                      radius: 50,
-                    ),
-                  ],
-                ),
+    final int greenPercent = (_secondsGreen / total * 100).toInt();
+    final int redPercent = (_secondsRed / total * 100).toInt();
+
+    return _buildCard(
+      child: Column(
+        children: [
+          const Text("Répartition du temps de posture", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 200,
+            child: PieChart(
+              PieChartData(
+                sectionsSpace: 2,
+                centerSpaceRadius: 40,
+                sections: [
+                  PieChartSectionData(value: _secondsGreen.toDouble(), color: Colors.teal, title: '$greenPercent%', radius: 60, titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                  PieChartSectionData(value: _secondsRed.toDouble(), color: Colors.redAccent, title: '$redPercent%', radius: 60, titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildLegendItem(Colors.teal, "Correcte"),
+              _buildLegendItem(Colors.redAccent, "Incorrecte"),
+            ],
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildLegendItem(Color color, String text) {
+    return Row(
+      children: [
+        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 8),
+        Text(text, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("PostureAI"), backgroundColor: Colors.indigo, centerTitle: true),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Expanded(flex: 1, child: _buildLiveStatus()),
-            const SizedBox(height: 16),
-            Expanded(flex: 2, child: _buildStatsSection()),
-            const SizedBox(height: 16),
-            Expanded(flex: 1, child: _buildRecommendationSection()),
-          ],
-        ),
+      backgroundColor: Colors.grey[100],
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 150.0,
+            floating: false,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              title: const Text("PostureAI", style: TextStyle(fontWeight: FontWeight.bold)),
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.indigo, Colors.blueAccent],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.all(16.0),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _buildLiveStatus(),
+                const SizedBox(height: 16),
+                _buildStatsSection(),
+                const SizedBox(height: 16),
+                _buildRecommendationSection(),
+              ]),
+            ),
+          ),
+        ],
       ),
     );
   }
