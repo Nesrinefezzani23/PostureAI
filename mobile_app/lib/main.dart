@@ -100,15 +100,13 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 32.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Image.asset('assets/img/Logo.png', height: 120),
-              const SizedBox(height: 24),
-              const Text("PostureAI", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.indigo)),
-              const SizedBox(height: 32),
+              const SizedBox(height: 120),
+              Image.asset('assets/img/Logo.png', height: 250),
               TextField(
                 controller: _usernameController,
                 decoration: const InputDecoration(labelText: "Nom d'utilisateur", prefixIcon: Icon(Icons.person), border: OutlineInputBorder()),
